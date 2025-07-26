@@ -1,3 +1,5 @@
+namespace eventstore_net;
+
 public record BankAccountOpened(
     Guid BankAccountId,
     string AccountNumber,
@@ -7,7 +9,7 @@ public record BankAccountOpened(
     long Version
 );
 
-public record DepositRecoreded(
+public record DepositRecorded(
     Guid BankAccountId,
     decimal Amount,
     Guid CashierId,
@@ -15,7 +17,7 @@ public record DepositRecoreded(
     long Version
 );
 
-public record CashWithdrawnFromATM(
+public record CashWithdrawnFromAtm(
     Guid BankAccountId,
     decimal Amount,
     Guid ATMId,
@@ -50,13 +52,13 @@ public record BankAccount(
         @event.Version
     );
 
-    private BankAccount Apply(DepositRecoreded @event) => this with
+    private BankAccount Apply(DepositRecorded @event) => this with
     {
         Balance = Balance + @event.Amount,
         Version = @event.Version
     };
 
-    private BankAccount Apply(CashWithdrawnFromATM @event) => this with
+    private BankAccount Apply(CashWithdrawnFromAtm @event) => this with
     {
         Balance = Balance - @event.Amount,
         Version = @event.Version
@@ -73,8 +75,8 @@ public record BankAccount(
         return @event switch
         {
             BankAccountOpened bankAccountCreated => Create(bankAccountCreated),
-            DepositRecoreded depositRecoreded => bankAccount.Apply(depositRecoreded),
-            CashWithdrawnFromATM cashWithdrawnFromATM => bankAccount.Apply(cashWithdrawnFromATM),
+            DepositRecorded depositRecorded => bankAccount.Apply(depositRecorded),
+            CashWithdrawnFromAtm cashWithdrawnFromATM => bankAccount.Apply(cashWithdrawnFromATM),
             BankAccountClosed bankAccountClosed => bankAccount.Apply(bankAccountClosed),
             _ => bankAccount
         };
