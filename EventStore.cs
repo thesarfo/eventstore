@@ -17,6 +17,30 @@ public class EventStore
     {
         CreateStreamsTable();
         CreateEventsTable();
+        CreateAppendEventFunction();
+    }
+
+    private void CreateAppendEventFunction()
+    {
+        const string appendEventFunctionSql =
+        @"CREATE OR REPLACE FUNCTION append_event(
+            id uuid,
+            data jsonb,
+            type text,
+            stream_id uuid,
+            stream_type text,
+            expected_stream_version bigint default null
+        ) RETURNS boolean
+        LANGUAGE plpgsql
+        AS $$
+        DECLARE
+            stream_version int;
+        BEGIN
+            RETURN TRUE;
+        END;
+        $$";
+
+        dbConnection.Execute(appendEventFunctionSql);
     }
 
     private void CreateEventsTable()
