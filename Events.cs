@@ -41,4 +41,42 @@ public record BankAccount(
     BankAccountStatus Status,
     decimal Balance,
     long Version = 0
-);
+)
+{
+    private static BankAccount Create(BankAccountOpened @event) => new BankAccount(
+        @event.BankAccountId,
+        BankAccountStatus.Opened,
+        0,
+        @event.Version
+    );
+
+    private BankAccount Apply(DepositRecoreded @event) => this with
+    {
+        Balance = Balance + @event.Amount,
+        Version = @event.Version
+    };
+
+    private BankAccount Apply(CashWithdrawnFromATM @event) => this with
+    {
+        Balance = Balance - @event.Amount,
+        Version = @event.Version
+    };
+
+    private BankAccount Apply(BankAccountClosed @event) => this with
+    {
+        Status = BankAccountStatus.Closed,
+        Version = @event.Version
+    };
+
+    public static BankAccount Evolve(BankAccount bankAccount, object @event)
+    {
+        return @event switch
+        {
+            BankAccountOpened bankAccountCreated => Create(bankAccountCreated),
+            DepositRecoreded depositRecoreded => bankAccount.Apply(depositRecoreded),
+            CashWithdrawnFromATM cashWithdrawnFromATM => bankAccount.Apply(cashWithdrawnFromATM),
+            BankAccountClosed bankAccountClosed => bankAccount.Apply(bankAccountClosed),
+            _ => bankAccount
+        };
+    }
+}
