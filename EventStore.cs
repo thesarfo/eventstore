@@ -1,13 +1,16 @@
+using System.Data;
+using System.Text.Json.Serialization;
 using Dapper;
+using Newtonsoft.Json;
 using Npgsql;
 
 public class EventStore
 {
-    private readonly NpgsqlConnection dbConnection;
+    private readonly NpgsqlConnection _dbConnection;
 
     public EventStore(NpgsqlConnection dbConnection)
     {
-        this.dbConnection = dbConnection;
+        this._dbConnection = dbConnection;
     }
 
     /// <summary>
@@ -20,6 +23,44 @@ public class EventStore
         CreateAppendEventFunction();
     }
 
+    public async Task<IReadOnlyList<object>> GetEventsAsync(
+        Guid streamId,
+        long? atStreamVersion = null,
+        DateTime? atTimestamp = null,
+        CancellationToken ct = default)
+    {
+        var getStreamSql =
+        @"$SELECT id, data, stream_id, type, version, created
+                  FROM events
+                  WHERE stream_id = @streamId
+                  ORDER BY version";
+
+        var events = await _dbConnection
+            .QueryAsync<dynamic>(getStreamSql, new { streamId });
+        
+        return events.Select(@event =>
+                JsonConvert.DeserializeObject(
+                    @event.data,
+                    Type.GetType(@event.type, true)!
+                ))
+            .ToList();
+    }
+
+    public bool AppendEvent<TStream>(Guid streamId, object @event, long? expectedVersion = null) =>
+        _dbConnection.QuerySingle<bool>(
+            "SELECT append_event(@Id, @Data::jsonb, @Type, @StreamId, @StreamType, @ExpectedVersion)",
+            new
+            {
+                Id = Guid.NewGuid(),
+                Data = JsonConvert.SerializeObject(@event),
+                Type = @event.GetType().AssemblyQualifiedName,
+                StreamId = streamId,
+                StreamType = typeof(TStream).AssemblyQualifiedName,
+                ExpectedVersion = expectedVersion
+            },
+            commandType: CommandType.Text
+        );
+    
     private void CreateAppendEventFunction()
     {
         const string appendEventFunctionSql =
@@ -70,7 +111,7 @@ public class EventStore
         END;
         $$";
 
-        dbConnection.Execute(appendEventFunctionSql);
+        _dbConnection.Execute(appendEventFunctionSql);
     }
 
     private void CreateEventsTable()
@@ -88,7 +129,7 @@ public class EventStore
             CONSTRAINT events_stream_and_version UNIQUE (stream_id, version)
         )";
 
-        dbConnection.Execute(createEventsTableSql);
+        _dbConnection.Execute(createEventsTableSql);
 
     }
 
@@ -100,6 +141,6 @@ public class EventStore
             type TEXT NOT NULL,
             version BIGINT NOT NULL,
         )";
-        dbConnection.Execute(createStreamsTableSql);
+        _dbConnection.Execute(createStreamsTableSql);
     }
 }
