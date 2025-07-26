@@ -29,10 +29,15 @@ public class EventStore
         DateTime? atTimestamp = null,
         CancellationToken ct = default)
     {
+        var atStreamCondition = atStreamVersion != null ? "AND version <= @atStreamVersion" : string.Empty;
+        var atTimestampCondition = atTimestamp != null ? "AND created <= @atTimestamp" : string.Empty;
+        
         var getStreamSql =
-        @"$SELECT id, data, stream_id, type, version, created
+        $@"$SELECT id, data, stream_id, type, version, created
                   FROM events
                   WHERE stream_id = @streamId
+                  {atStreamCondition}
+                  {atTimestampCondition}
                   ORDER BY version";
 
         var events = await _dbConnection
