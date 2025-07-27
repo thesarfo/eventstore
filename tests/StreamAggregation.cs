@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Npgsql;
 using Xunit;
 
@@ -71,6 +72,7 @@ public class StreamAggregation
         eventStore.AppendEvent<User>(streamId, userNameUpdated);
 
         var aggregate = eventStore.AggregateStream<User>(streamId);
+
 
         aggregate.Id.Should().Be(streamId);
         aggregate.Name.Should().Be(userNameUpdated.UserName);

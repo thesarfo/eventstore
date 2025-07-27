@@ -1,32 +1,27 @@
+using eventstore_net;
+using eventstore_net.tests;
+using FluentAssertions;
 using Npgsql;
 using Xunit;
 
-namespace eventstore_net.tests;
+namespace EventStoreBasics.Tests;
 
-public class AggregateAndRepository
+public class Exercise05StreamAggregation
 {
-    public class User: Aggregate
+    public class User
     {
+        public Guid Id { get; private set; }
         public string Name { get; private set; } = default!;
+        public long Version { get; private set; }
 
         public User(Guid id, string name)
         {
-            var @event = new UserCreated(id, name);
-
-            Enqueue(@event);
-            Apply(@event);
+            Id = id;
+            Name = name;
         }
 
-        // For serialization
+        // For deserialization
         private User() { }
-
-        public void ChangeName(string name)
-        {
-            var @event = new UserNameUpdated(Id, name);
-
-            Enqueue(@event);
-            Apply(@event);
-        }
 
         public void Apply(UserCreated @event)
         {
@@ -52,12 +47,11 @@ public class AggregateAndRepository
 
     private readonly NpgsqlConnection databaseConnection;
     private readonly EventStore eventStore;
-    private readonly IRepository<User> repository;
 
     /// <summary>
     /// Inits Event Store
     /// </summary>
-    public AggregateAndRepository()
+    public Exercise05StreamAggregation()
     {
         databaseConnection = PostgresDbConnectionProvider.GetFreshDbConnection();
 
@@ -66,33 +60,23 @@ public class AggregateAndRepository
 
         // Initialize Event Store
         eventStore.Init();
-
-        repository = new Repository<User>(eventStore);
     }
 
     [Fact]
     [Trait("Category", "SkipCI")]
-    public void Repository_FullFlow_ShouldSucceed()
+    public void AggregateStream_ShouldReturnObjectWithStateBasedOnEvents()
     {
         var streamId = Guid.NewGuid();
-        var user = new User(streamId, "John Doe");
+        var userCreated = new UserCreated(streamId, "John Doe");
+        var userNameUpdated = new UserNameUpdated(streamId, "Adam Smith");
 
-        repository.Add(user);
+        eventStore.AppendEvent<User>(streamId, userCreated);
+        eventStore.AppendEvent<User>(streamId, userNameUpdated);
 
-        var userFromRepository = repository.Find(streamId);
+        var aggregate = eventStore.AggregateStream<User>(streamId);
 
-        userFromRepository.Id.Should().Be(streamId);
-        userFromRepository.Name.Should().Be("John Doe");
-        userFromRepository.Version.Should().Be(1);
-
-        userFromRepository.ChangeName("Adam Smith");
-
-        repository.Update(userFromRepository);
-
-        var userAfterUpdate = repository.Find(streamId);
-
-        userAfterUpdate.Id.Should().Be(streamId);
-        userAfterUpdate.Name.Should().Be("Adam Smith");
-        userFromRepository.Version.Should().Be(2);
+        aggregate.Id.Should().Be(streamId);
+        aggregate.Name.Should().Be(userNameUpdated.UserName);
+        aggregate.Version.Should().Be(2);
     }
 }

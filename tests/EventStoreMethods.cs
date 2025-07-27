@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Npgsql;
 using Xunit;
 

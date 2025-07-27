@@ -1,11 +1,18 @@
+using System.Collections;
 using System.Data;
-using System.Text.Json.Serialization;
 using Dapper;
+using eventstore_net.tests;
 using Newtonsoft.Json;
 using Npgsql;
 
-public class EventStore
+namespace eventstore_net;
+
+public class EventStore : IDisposable
 {
+    
+    private const string Apply = "Apply";
+    private const string Version = "Version";
+    
     private readonly NpgsqlConnection _dbConnection;
 
     public EventStore(NpgsqlConnection dbConnection)
@@ -33,7 +40,7 @@ public class EventStore
         var atTimestampCondition = atTimestamp != null ? "AND created <= @atTimestamp" : string.Empty;
         
         var getStreamSql =
-        $@"$SELECT id, data, stream_id, type, version, created
+            $@"$SELECT id, data, stream_id, type, version, created
                   FROM events
                   WHERE stream_id = @streamId
                   {atStreamCondition}
@@ -69,7 +76,7 @@ public class EventStore
     private void CreateAppendEventFunction()
     {
         const string appendEventFunctionSql =
-        @"CREATE OR REPLACE FUNCTION append_event(
+            @"CREATE OR REPLACE FUNCTION append_event(
             id uuid,
             data jsonb,
             type text,
@@ -118,12 +125,40 @@ public class EventStore
 
         _dbConnection.Execute(appendEventFunctionSql);
     }
+    
+    public StreamState GetStreamState(Guid streamId) =>
+        throw new NotImplementedException("Return here stream state, so: id, type and version.");
+
+    public IEnumerable GetEvents(Guid streamId) =>
+        throw new NotImplementedException("Return here stream events stored in database.");
+    
+    // 1. Create instance
+    // 2. Get Stream Events
+    // 3. For each event call apply method on aggregate and increment aggregate version
+    // 4. Return Aggregate
+    public T AggregateStream<T>(Guid streamId, long? atStreamVersion = null, DateTime? atTimestamp = null) where T: notnull
+    {
+        var aggregate = (T)Activator.CreateInstance(typeof(T), true)!;
+
+        var events = GetEvents(streamId);
+        var version = 0;
+
+        foreach (var @event in events)
+        {
+            aggregate.InvokeIfExists(Apply, @event);
+            aggregate.SetIfExists(Version, ++version);
+        }
+
+        return aggregate;
+    }
+
+
 
     private void CreateEventsTable()
     {
         const string createEventsTableSql =
 
-        @"CREATE TABLE IF NOT EXISTS events (
+            @"CREATE TABLE IF NOT EXISTS events (
             id UUID NOT NULL PRIMARY KEY,
             data JSONB NOT NULL,
             stream_id UUID NOT NULL,
@@ -141,11 +176,14 @@ public class EventStore
     private void CreateStreamsTable()
     {
         const string createStreamsTableSql =
-        @"CREATE TABLE IF NOT EXISTS streams (
+            @"CREATE TABLE IF NOT EXISTS streams (
             id UUID NOT NULL PRIMARY KEY,
             type TEXT NOT NULL,
             version BIGINT NOT NULL,
         )";
         _dbConnection.Execute(createStreamsTableSql);
     }
+    
+    public void Dispose() =>
+        _dbConnection.Dispose();
 }
