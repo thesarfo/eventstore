@@ -1,11 +1,13 @@
 using System.Collections;
 using System.Data;
 using Dapper;
+using eventstore_net.Projection;
 using eventstore_net.tests;
+using eventstore_net.Util;
 using Newtonsoft.Json;
 using Npgsql;
 
-namespace eventstore_net;
+namespace eventstore_net.Event;
 
 public class EventStore : IDisposable
 {

@@ -1,3 +1,4 @@
+using eventstore_net.Event;
 using FluentAssertions;
 using Npgsql;
 using Npgsql.Replication.PgOutput.Messages;

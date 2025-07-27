@@ -1,8 +1,9 @@
 using Dapper.Contrib.Extensions;
-using Npgsql; 
+using eventstore_net.Event;
+using eventstore_net.Projection;
+using Npgsql;
 
-
-namespace eventstore_net;
+namespace eventstore_net.BankAccount;
 
 
 

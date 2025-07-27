@@ -1,7 +1,8 @@
 using Dapper;
+using eventstore_net.Event;
 using Npgsql;
 
-namespace eventstore_net;
+namespace eventstore_net.Cashier;
 
 
 public class CashierDashboard
@@ -12,7 +13,7 @@ public class CashierDashboard
     public decimal TotalBalance { get; set; }
 }
 
-public class CashierDashboardProjection: Projection
+public class CashierDashboardProjection: Projection.Projection
 {
     private readonly NpgsqlConnection _dbConnection;
 

@@ -1,7 +1,7 @@
 using System.Data;
 using Npgsql;
 
-namespace eventstore_net;
+namespace eventstore_net.Util;
 
 
 public static class TransactionUtil

@@ -1,8 +1,9 @@
 using Dapper;
 using Dapper.Contrib.Extensions;
+using eventstore_net.Util;
 using Npgsql;
 
-namespace eventstore_net;
+namespace eventstore_net.Projection;
 
 
 public interface IProjection

@@ -1,4 +1,4 @@
-namespace eventstore_net;
+namespace eventstore_net.Cashier;
 
 public record CashierEmployed(
     Guid CashierId,

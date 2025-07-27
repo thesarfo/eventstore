@@ -1,4 +1,4 @@
-namespace eventstore_net;
+namespace eventstore_net.Event;
 
 public record BankAccountOpened(
     Guid BankAccountId,

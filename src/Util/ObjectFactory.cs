@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace eventstore_net;
+namespace eventstore_net.Util;
 
 public static class ObjectFactory<T>
 {

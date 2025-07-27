@@ -1,4 +1,5 @@
 using eventstore_net;
+using eventstore_net.Event;
 using eventstore_net.tests;
 using FluentAssertions;
 using Npgsql;

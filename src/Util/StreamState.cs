@@ -1,4 +1,4 @@
-namespace eventstore_net;
+namespace eventstore_net.Util;
 
 public class StreamState(Guid id, Type type, long version)
 {

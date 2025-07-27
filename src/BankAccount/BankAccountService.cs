@@ -1,4 +1,7 @@
-namespace eventstore_net;
+using eventstore_net.Event;
+
+
+namespace eventstore_net.BankAccount;
 
 public record OpenBankAccount(
     Guid BankAccountId,
@@ -23,7 +26,7 @@ public record CloseBankAccount(
 
 public static class BankAccountService
 {
-    public static object Handle(object command, BankAccount bankAccount) =>
+    public static object Handle(object command, Event.BankAccount bankAccount) =>
         command switch
         {
             OpenBankAccount openBankAccount =>
@@ -52,7 +55,7 @@ public static class BankAccountService
 
     public static DepositRecorded Handle(
         RecordDeposit command,
-        BankAccount account
+        Event.BankAccount account
     )
     {
         if (account.Status == BankAccountStatus.Closed)
@@ -63,7 +66,7 @@ public static class BankAccountService
 
     public static CashWithdrawnFromAtm Handle(
         WithdrawnCashFromAtm command,
-        BankAccount account
+        Event.BankAccount account
     )
     {
         if (account.Status == BankAccountStatus.Closed)
@@ -77,7 +80,7 @@ public static class BankAccountService
 
     public static  BankAccountClosed Handle(
         CloseBankAccount command,
-        BankAccount account
+        Event.BankAccount account
     )
     {
         if (account.Status == BankAccountStatus.Closed)
