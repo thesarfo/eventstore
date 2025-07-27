@@ -17,4 +17,11 @@
     <PackageReference Include="Xunit" Version="2.9.3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="src\BankAccount\" />
+    <Folder Include="src\Cashier\" />
+    <Folder Include="src\Event\" />
+    <Folder Include="src\Projection\" />
+  </ItemGroup>
+
 </Project>

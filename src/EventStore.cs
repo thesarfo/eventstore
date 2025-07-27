@@ -45,6 +45,19 @@ public class EventStore : IDisposable
         }
     }
 
+    private async Task ApplyProjections(object @event, CancellationToken ct)
+    {
+        if (!projections.ContainsKey(@event.GetType()))
+        {
+            return;
+        }
+        
+        foreach(var projection in projections[@event.GetType()])
+        {
+            await projection.Handle(@event, ct);
+        }
+    }
+
     private void InitProjections()
     {
         foreach (var projection in projections.Values.SelectMany(p => p))
@@ -95,6 +108,40 @@ public class EventStore : IDisposable
             },
             commandType: CommandType.Text
         );
+    
+    public Task AppendEventsAsync<TStream>(
+        Guid streamId,
+        IEnumerable<object> events,
+        long? expectedVersion = null,
+        CancellationToken ct = default
+    ) where TStream : notnull =>
+        _dbConnection.InTransaction(async () =>
+            {
+                foreach (var @event in events)
+                {
+                    var succeeded = await _dbConnection.QuerySingleAsync<bool>(
+                        "SELECT append_event(@Id, @Data::jsonb, @Type, @StreamId, @StreamType, @ExpectedVersion)",
+                        new
+                        {
+                            Id = Guid.NewGuid(),
+                            Data = JsonConvert.SerializeObject(@event),
+                            Type = @event.GetType().AssemblyQualifiedName,
+                            StreamId = streamId,
+                            StreamType = typeof(TStream).AssemblyQualifiedName,
+                            ExpectedVersion = expectedVersion++
+                        },
+                        commandType: CommandType.Text
+                    );
+
+                    if (!succeeded)
+                        throw new InvalidOperationException("Expected version did not match the stream version!");
+
+                    await ApplyProjections(@event, ct);
+                }
+            },
+            ct
+        );
+    
     
     private void CreateAppendEventFunction()
     {
