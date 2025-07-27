@@ -14,6 +14,7 @@ public class EventStore : IDisposable
     private const string Version = "Version";
     
     private readonly NpgsqlConnection _dbConnection;
+    private readonly Dictionary<Type, List<IProjection>> projections = new();
 
     public EventStore(NpgsqlConnection dbConnection)
     {
@@ -28,6 +29,28 @@ public class EventStore : IDisposable
         CreateStreamsTable();
         CreateEventsTable();
         CreateAppendEventFunction();
+        InitProjections();
+    }
+
+    public void RegisterProjection(IProjection projection)
+    {
+        foreach (var eventType in projection.Handles)
+        {
+            if (!projections.ContainsKey(eventType))
+            {
+                projections[eventType] = new List<IProjection>();
+                
+                projections[eventType].Add(projection);
+            }
+        }
+    }
+
+    private void InitProjections()
+    {
+        foreach (var projection in projections.Values.SelectMany(p => p))
+        {
+            projection.Init();
+        }
     }
 
     public async Task<IReadOnlyList<object>> GetEventsAsync(
