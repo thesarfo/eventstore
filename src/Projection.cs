@@ -1,4 +1,5 @@
 using Dapper;
+using Dapper.Contrib.Extensions;
 using Npgsql;
 
 namespace eventstore_net;
@@ -49,15 +50,15 @@ public abstract class FlatTableProjection<TEntity>: Projection where TEntity : c
         Func<TEntity, TEvent, TEntity> handle
     )
     {
-        // Projects<TEvent>(async (@event, _) =>
-        // {
-        //     var entity = await dbConnection.GetAsync<TEntity?>(getId(@event));
-        //     var updatedEntity = handle(entity ?? ObjectFactory<TEntity>.GetEmpty(), @event);
-        //
-        //     if (entity == null)
-        //         await dbConnection.InsertAsync(updatedEntity);
-        //     else
-        //         await dbConnection.UpdateAsync(updatedEntity);
-        // });
+        Projects<TEvent>(async (@event, _) =>
+        {
+            var entity = await dbConnection.GetAsync<TEntity?>(getId(@event));
+            var updatedEntity = handle(entity ?? ObjectFactory<TEntity>.GetEmpty(), @event);
+        
+            if (entity == null)
+                await dbConnection.InsertAsync(updatedEntity);
+            else
+                await dbConnection.UpdateAsync(updatedEntity);
+        });
     }
 }
